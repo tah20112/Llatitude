@@ -27,7 +27,7 @@ if [ -f /var/run/audio-update ]; then
     echo "SpeechRecognition should now function without media jack errors"
 else
     before_reboot
-    touch /var/run/audio-update
+    sudo touch /var/run/audio-update
     update-rc.d myupdate defaults
 # media jack updates require reboot
     while true; do
