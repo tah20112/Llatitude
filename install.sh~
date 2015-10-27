@@ -1,5 +1,6 @@
 #!/bin/bash
-before_reboot(){
+
+# before reboot
 # install dependencies
     sudo apt-get install python-pyaudio python3-pyaudio
     sudo apt-get install flac
@@ -11,24 +12,41 @@ before_reboot(){
     sudo dpkg-reconfigure -p high jackd2
     sudo adduser $(whoami) audio
     echo "Ubuntu must restart for media jack updates to take effect"
-}
 
-after_reboot(){
+# after reboot
 # This will run upon startup and solve the jack server error
+echo "
+    #!/bin/bash
     pulseaudio --kill
     jack_control start
-}
+    echo \"SpeechRecognition should now function without media jack errors\"
+    sudo rm /etc/init.d/audio-update.sh
+    ">>/etc/init.d/audio-update.sh
+
+# media jack updates require reboot
+    while true; do
+        read -p "Do you wish to restart Ubuntu now?" yn
+        case $yn in
+            [Yy]* ) sudo reboot; break;;
+            [Nn]* ) exit;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+
+
+
+
 
 # Split the script into two parts: before & after update
 if [ -f /var/run/audio-update ]; then
     after_reboot
     rm /var/run/audio-update
-    update-rc.d myupdate remove
-    echo "SpeechRecognition should now function without media jack errors"
+    sudo update-rc.d myupdate remove
+    
 else
     before_reboot
-    touch /var/run/audio-update
-    update-rc.d myupdate defaults
+    sudo touch /var/run/audio-update
+    sudo update-rc.d myupdate defaults
 # media jack updates require reboot
     while true; do
         read -p "Do you wish to restart Ubuntu now?" yn
