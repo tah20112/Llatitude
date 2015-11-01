@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
+import serial, time
 import speech_recognition as sr
 from googleplaces import GooglePlaces, types, lang
 import pprint
 
+# Begin serial connection with Arduino
+ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
+time.sleep(2) # Wait for the Arduino to be ready
 # Voices
 # obtain audio from the microphone
 r = sr.Recognizer()
@@ -37,12 +41,16 @@ query_result = google_places.nearby_search(location=speech, radius = 1)
 if query_result.has_attributions:
     print query_result.html_attributions
 
+coordinates = "" # declare string for retaining lat & lon values
 
-for place in query_result.places:
-    # Returned places from a query are place summaries.
-    # pp.pprint(place.name)
-    # pp.pprint(place.geo_location)
-    print str(place.name)
-    for key in place.geo_location:
-        print str(key), place.geo_location[key] # keys are unicode, locations are floats
-   
+place = query_result.places[0]
+# Returned places from a query are place summaries.
+# pp.pprint(place.name)
+# pp.pprint(place.geo_location)
+print str(place.name)
+for key in place.geo_location:
+    coordinates += str(place.geo_location[key]) # keys are unicode, locations are floats
+
+ser.write(coordinates) # Output coordinates to Arduino
+while True: # for testing purposes
+	print ser.readline() # receive feedback from Arduino
