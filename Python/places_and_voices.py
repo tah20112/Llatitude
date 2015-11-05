@@ -35,7 +35,7 @@ YOUR_API_KEY = 'AIzaSyB8Yg8zsqZfUwinu2c_V8PP7mgBNrp0h8A'
 google_places = GooglePlaces(YOUR_API_KEY)
 
 # You may prefer to use the text_search API, instead.
-query_result = google_places.nearby_search(location=speech, radius = 1)
+query_result = google_places.text_search(query=speech, radius = 1)
 
 
 if query_result.has_attributions:
