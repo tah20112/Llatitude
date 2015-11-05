@@ -44,7 +44,7 @@ def get_location_data(locationInput):
     coordinates = "" # declare string for retaining lat & lon values
 
     place = query_result.places[0]
-    print place.geo_location
+    # print place.geo_location
     locationData = (str(place.name) + '|' +
                     str(place.geo_location['lat']) + '|' +
                     str(place.geo_location['lng']))
@@ -55,8 +55,13 @@ def get_location_data(locationInput):
 
 # Get place input from user
 # get_places(raw_input('Enter a Location: '))
-sydneyData = get_location_data('Los Angelos')
-print sydneyData
+# sydneyData = get_location_data('Los Angelos')
+# print sydneyData
+
+def get_input():
+    data = get_location_data(raw_input('Enter a Location: '))
+    ser.write(data)
+    get_input()
 
 # print
 # results = Geocoder.geocode('Babson College')
@@ -64,6 +69,7 @@ print sydneyData
 # print results[0].coordinates
 
 # Output to Arduino
-ser.write(sydneyData)
+# ser.write(sydneyData)
 # while True: # for testing purposes
 # 	print ser.readline() # receive feedback from Arduino
+get_input()
