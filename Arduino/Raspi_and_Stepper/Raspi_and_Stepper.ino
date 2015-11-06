@@ -8,7 +8,7 @@
 #include <Stepper.h> // include step motor library
 #include <LiquidCrystal.h>  // include library for LCD display
                 
-const int stepsPerRevolution = 360; // change this to match the stepper motor we use
+const int stepsPerRevolution = 200; // change this to match the stepper motor we use
 boolean newBuffer = false; // did new info come from Python?
 String buffer;  // string built from serial
 String place; // strings for Python input
@@ -53,7 +53,8 @@ void loop()
     Serial.println(distanceVal);
     Serial.println(angleVal);
     displayPost(place, distance);
-    motor.step(angleVal);
+    float adjusted_angle = (angleVal/360)*200;
+    motor.step(adjusted_angle);
     newBuffer = false;
     buffer = "";
   }
