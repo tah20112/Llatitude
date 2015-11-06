@@ -1,11 +1,16 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import serial, time
 import speech_recognition as sr
 from googleplaces import GooglePlaces, types, lang
 import pprint
+import math
+from geopy.distance import vincenty
 # from googlemaps import *
 # from pygeocoder import Geocoder
+
+SIGN_COORD = (42.293045,-71.264086)
 
 # Begin serial connection with Arduino
 ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
@@ -41,35 +46,49 @@ def get_location_data(locationInput):
     if query_result.has_attributions:
         print query_result.html_attributions
 
-    coordinates = "" # declare string for retaining lat & lon values
-
     place = query_result.places[0]
-    # print place.geo_location
-    locationData = (str(place.name) + '|' +
-                    str(place.geo_location['lat']) + '|' +
-                    str(place.geo_location['lng']))
-    # for key in place.geo_location:
-    #     coordinates += str(place.geo_location[key]) # keys are unicode, locations are floats
 
-    return locationData
+    return place
+
+def get_distance(location_coord):
+    dist = vincenty(SIGN_COORD,location_coord).miles
+    return dist
+
+# Get initial bearing toward location using Haversine's method
+# Taken from Jeromer's GitHub: https://gist.github.com/jeromer/2005586
+def get_angle(location_coord):
+
+    lat1 = math.radians(SIGN_COORD[0])
+    lat2 = math.radians(location_coord[0])
+
+    diffLong = math.radians(location_coord[1] - SIGN_COORD[1])
+
+    x = math.sin(diffLong) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
+            * math.cos(lat2) * math.cos(diffLong))
+
+    initial_bearing = math.atan2(x, y)
+
+    # Now we have the initial bearing but math.atan2 return values
+    # from -180° to + 180° which is not what we want for a compass bearing
+    # The solution is to normalize the initial bearing as shown below
+    initial_bearing = math.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+
+    return compass_bearing
 
 # Get place input from user
-# get_places(raw_input('Enter a Location: '))
-# sydneyData = get_location_data('Los Angelos')
-# print sydneyData
 
 def get_input():
     data = get_location_data(raw_input('Enter a Location: '))
-    ser.write(data)
-    get_input()
+    distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))
+    angle = get_angle((data.geo_location['lat'], data.geo_location['lng']))
+    output = str(data.name) + ':' + str(distance) + ':' + str(angle)
+    print output
+    ser.write(output)
+ #   get_input()
 
-# print
-# results = Geocoder.geocode('Babson College')
-# print results
-# print results[0].coordinates
-
-# Output to Arduino
-# ser.write(sydneyData)
-# while True: # for testing purposes
-# 	print ser.readline() # receive feedback from Arduino
 get_input()
+# Output to Arduino
+while True: # for testing purposes
+	print ser.readline() # receive feedback from Arduino
