@@ -11,6 +11,7 @@ from geopy.distance import vincenty
 # from pygeocoder import Geocoder
 
 SIGN_COORD = (42.293045,-71.264086)
+gear_ratio = 3
 
 # Begin serial connection with Arduino
 ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
@@ -73,7 +74,7 @@ def get_angle(location_coord):
     # from -180° to + 180° which is not what we want for a compass bearing
     # The solution is to normalize the initial bearing as shown below
     initial_bearing = math.degrees(initial_bearing)
-    compass_bearing = (initial_bearing + 360) % 360
+    compass_bearing = ((initial_bearing + 360) % 360)*gear_ratio
 
     return compass_bearing
 
