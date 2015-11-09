@@ -36,6 +36,7 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 boolean newInput = false;
 String buffer;
 String currMessage = "hello, world!";
+String locationData[3];
 
 void setup() {
   Serial.begin(9600);
@@ -46,19 +47,39 @@ void setup() {
 }
 
 void loop() {
+  // Read the whole input before proceeding
+  int i = 0;
   while (Serial.available()>0) {
     char ch = Serial.read();
-    buffer += ch;
+    if (ch == '|') {
+      i++;
+    }
+    else {
+      locationData[i] += ch;
+    }
     newInput = true;
     delay(2);
   }
   // If there's a new input, change the stuff
   if (newInput) {
-    displayNew(buffer, currMessage);
-    currMessage = buffer;
+    //displayNew(buffer, currMessage);
+    //currMessage = buffer;
+    displayLocationData(locationData);
     newInput = false;
     buffer = "";
+    locationData[0] = "";
+    locationData[1] = "";
+    locationData[2] = "";
   }
+}
+
+void displayLocationData(String data[3]) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(data[0]);
+  lcd.setCursor(0, 1);
+  String latlng = data[1].substring(0,7) + ", " + data[2].substring(0,7);
+  lcd.print(latlng);
 }
 
 void displayNew(String newMessage, String oldMessage) {
