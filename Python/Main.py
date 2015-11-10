@@ -1,16 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# The first line indicates the program that can execute this script
+# The second line encodes utf-8 values and makes them function as strings?
+
 import serial, time
 import speech_recognition as sr
 from googleplaces import GooglePlaces, types, lang
 import pprint
 import math
 from geopy.distance import vincenty
-# from googlemaps import *
-# from pygeocoder import Geocoder
+from urllib2 import urlopen
+from contextlib import closing
+import json
 
-SIGN_COORD = (42.293045,-71.264086)
+
+default_coordinates = (42.293045,-71.264086)    # POE Room coordinates
+
+# Automatically geolocate the connecting IP
+def get_sign_coordinates():
+    url = 'http://freegeoip.net/json/'  # set the geoip site for querying
+    try:
+        with closing(urlopen(url)) as response:
+            location = json.loads(response.read())  # Get RasPi location data
+            print location
+            latitude = location['latitude']
+            longitude = location['longitude']
+            coordinates = (latitude, longitude) # both values are floats
+    except:
+        coordinates = default_coordinates
+    return coordinates
+
+SIGN_COORD = get_sign_coordinates()
 gear_ratio = 3
 
 # Begin serial connection with Arduino
@@ -39,7 +60,7 @@ time.sleep(2) # Wait for the Arduino to be ready
 google_places = GooglePlaces('AIzaSyDNc2X0VlrZPMecga6HDs9RGR_FTJ-26lo')
 
 
-def get_location_data(locationInput):
+def get_selected_location_data(locationInput):
     # You may prefer to use the text_search API, instead.
     # query_result = google_places.nearby_search(location=locationInput, radius = 1)
     query_result = google_places.text_search(query=locationInput, radius = 1)
@@ -81,7 +102,7 @@ def get_angle(location_coord):
 # Get place input from user
 
 def get_input():
-    data = get_location_data(raw_input('Enter a Location: '))
+    data = get_selected_location_data(raw_input('Enter a Location: '))
     distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))
     angle = get_angle((data.geo_location['lat'], data.geo_location['lng']))
     output = str(data.name) + ':' + str(distance) + ':' + str(angle)
