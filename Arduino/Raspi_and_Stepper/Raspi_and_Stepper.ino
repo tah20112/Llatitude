@@ -5,6 +5,7 @@
 */
 
 
+#include <AFMotor.h>
 #include <Stepper.h> // include step motor library
 #include <LiquidCrystal.h>  // include library for LCD display
                 

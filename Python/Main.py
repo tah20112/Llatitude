@@ -31,7 +31,7 @@ def get_sign_coordinates():
         coordinates = default_coordinates
     return coordinates
 
-SIGN_COORD = get_sign_coordinates()
+SIGN_COORD = default_coordinates #get_sign_coordinates()
 gear_ratio = 3
 
 # Begin serial connection with Arduino
@@ -112,5 +112,5 @@ def get_input():
 
 get_input()
 # Output to Arduino
-while True: # for testing purposes
-	print ser.readline() # receive feedback from Arduino
+# while True: # for testing purposes
+# 	print ser.readline() # receive feedback from Arduino

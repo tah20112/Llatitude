@@ -4,6 +4,7 @@
    the location
 */
 
+#include <AFMotor.h>
 #include <Stepper.h> // include step motor library
 #include <LiquidCrystal.h>  // include library for LCD display
                 
@@ -30,6 +31,7 @@ void setup()
  
 void loop() 
 { 
+  // while Python is sending over Serial, append characters to buffer
   while (Serial.available()>0) {
     char ch = Serial.read();
     buffer += ch;
