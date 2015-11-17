@@ -35,7 +35,7 @@ SIGN_COORD = get_sign_coordinates()
 gear_ratio = 3
 
 # Begin serial connection with Arduino
-ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
+ser = serial.Serial('/dev/ttyACM1', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
 time.sleep(2) # Wait for the Arduino to be ready
 
 # Voices
@@ -83,7 +83,7 @@ def get_angle(location_coord):
     lat1 = math.radians(SIGN_COORD[0])
     lat2 = math.radians(location_coord[0])
 
-    diffLong = math.radians(location_coord[1] - SIGN_COORD[1])
+    diffLong = math.radians(float(location_coord[1]) - SIGN_COORD[1])
 
     x = math.sin(diffLong) * math.cos(lat2)
     y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
