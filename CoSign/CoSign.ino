@@ -1,33 +1,32 @@
 // NOTE: must add limit switch to zero stepper motor @ startup
 
-/* Inputs distance and direction data from Raspberry Pi and writes to a stepper motor, turning it toward 
-   the location
+/* Inputs direction data from Raspberry Pi and writes to a stepper motor, turning it toward the location
+Outputs magnetometer heading data to RasPi
 */
 
 #include <AFMotor.h>
 #include <Stepper.h> // include step motor library
-#include <LiquidCrystal.h>  // include library for LCD display
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_HMC5883_U.h>
                 
 const int stepsPerRevolution = 200; // change this to match the stepper motor we use
 boolean newBuffer = false; // did new info come from Python?
 String buffer;  // string built from serial
-String place; // strings for Python input
-String distance;
-String angle;
+float angle;
 
 // create stepper object to control a motor
 Stepper motor(stepsPerRevolution, 8, 9, 10, 11);
-// initialize the lcd with the numbers of the interface pins
-LiquidCrystal lcd(13, 12, 5, 4, 3, 2);
+
+// Assign a unique ID to the magnetometer
+Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 
 void setup()
 { 
   Serial.begin(9600);
   motor.setSpeed(30); // speed set in rpm
-  lcd.begin(16, 2);
-  lcd.print("Ready for Location");
+  mag.begin();
 } 
- 
  
 void loop() 
 { 
@@ -40,37 +39,23 @@ void loop()
   }
   // If there's a new input, change the stuff
   if (newBuffer) {
-    place = getSubString(buffer, ':', 0);
-    distance = getSubString(buffer, ':', 1);
-    angle = getSubString(buffer, ':', 2);
-    
-    char carray[distance.length() + 1];
-    distance.toCharArray(carray, sizeof(carray));
-    float distanceVal = atof(carray);
-    char carray2[angle.length() + 1];
-    angle.toCharArray(carray2, sizeof(carray));
-    float angleVal = atof(carray2);
+    if (buffer == "need_heading"){
+        float heading = getHeading();
+        Serial.println(heading);
+    }else{
+        angle = buffer.toFloat(); //getSubString(buffer, ':', 2);
+        
+        //char carray2[angle.length() + 1];
+        //angle.toCharArray(carray2, sizeof(carray));
+        //float angleVal = atof(carray2);
 
-    Serial.println(place);
-    Serial.println(distanceVal);
-    Serial.println(angleVal);
-    displayPost(place, distance);
-    float adjusted_angle = (angleVal/360)*200;
-    motor.step(adjusted_angle);
-    newBuffer = false;
-    buffer = "";
+        float adjusted_angle = (angle/360)*200;
+        motor.step(adjusted_angle);
+        newBuffer = false;
+        buffer = "";
+    }
   }
 }
-
-void displayPost(String name, String dist) {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(name);
-  lcd.setCursor(0, 1);
-  lcd.print(dist);
-  lcd.print(" miles");
-}
-
 
 String getSubString(String data, char separator, int index)
 {
@@ -85,4 +70,29 @@ String getSubString(String data, char separator, int index)
   }
  }
   return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+float getHeading(){
+  /* Get a new sensor event */ 
+  sensors_event_t event; 
+  mag.getEvent(&event);
+
+  float heading = atan2(event.magnetic.y, event.magnetic.x);
+  
+  // Declination angle for Olin is roughly -14deg West, or 0.24rad
+  float declinationAngle = 0.24;
+  heading += declinationAngle;
+  
+  // Correct for when signs are reversed.
+  if(heading < 0)
+    heading += 2*PI;
+    
+  // Check for wrap due to addition of declination.
+  if(heading > 2*PI)
+    heading -= 2*PI;
+   
+  // Convert radians to degrees for readability.
+  float headingDegrees = heading * 180/M_PI; 
+  
+  Serial.println(headingDegrees);
 }
