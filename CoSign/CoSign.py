@@ -15,10 +15,22 @@ from contextlib import closing
 import json
 
 
-default_coordinates = (42.293045,-71.264086)    # POE Room coordinates
+# Print data to LED Matrix
+def led_print(first_line, second_line):
+    pass
+
+# Begin serial connection with Arduino
+ser = serial.Serial('/dev/ttyACM1', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
+time.sleep(2) # Wait for the Arduino to be ready
 
 # Automatically geolocate the connecting IP
-def get_sign_coordinates():
+# Also, get heading data from the Arduino's magnetometer
+def get_sign_data():
+    lines_received = 0
+    ser.write('need_heading')
+    while len(heading) == 0:
+        heading = ser.readline()
+    default_coordinates = (42.293045,-71.264086)    # POE Room coordinates
     url = 'http://freegeoip.net/json/'  # set the geoip site for querying
     try:
         with closing(urlopen(url)) as response:
@@ -29,14 +41,10 @@ def get_sign_coordinates():
             coordinates = (latitude, longitude) # both values are floats
     except:
         coordinates = default_coordinates
-    return coordinates
+    return [heading, coordinates]
 
-SIGN_COORD = get_sign_coordinates()
-gear_ratio = 3
-
-# Begin serial connection with Arduino
-ser = serial.Serial('/dev/ttyACM1', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
-time.sleep(2) # Wait for the Arduino to be ready
+SIGN_DATA = get_sign_data()
+gear_ratio = 3 # We need to update this
 
 # Voices
 # obtain audio from the microphone
@@ -61,29 +69,27 @@ google_places = GooglePlaces('AIzaSyDNc2X0VlrZPMecga6HDs9RGR_FTJ-26lo')
 
 
 def get_selected_location_data(locationInput):
-    # You may prefer to use the text_search API, instead.
-    # query_result = google_places.nearby_search(location=locationInput, radius = 1)
     query_result = google_places.text_search(query=locationInput, radius = 1)
 
-    if query_result.has_attributions:
-        print query_result.html_attributions
+#    if query_result.has_attributions:
+#        print query_result.html_attributions
 
     place = query_result.places[0]
 
     return place
 
 def get_distance(location_coord):
-    dist = vincenty(SIGN_COORD,location_coord).miles
+    dist = vincenty(SIGN_DATA[1],location_coord).miles
     return dist
 
 # Get initial bearing toward location using Haversine's method
 # Taken from Jeromer's GitHub: https://gist.github.com/jeromer/2005586
 def get_angle(location_coord):
 
-    lat1 = math.radians(SIGN_COORD[0])
+    lat1 = math.radians(SIGN_DATA[1][0])
     lat2 = math.radians(location_coord[0])
 
-    diffLong = math.radians(float(location_coord[1]) - SIGN_COORD[1])
+    diffLong = math.radians(float(location_coord[1]) - SIGN_DATA[1][1])
 
     x = math.sin(diffLong) * math.cos(lat2)
     y = math.cos(lat1) * math.sin(lat2) - (math.sin(lat1)
@@ -102,15 +108,14 @@ def get_angle(location_coord):
 # Get place input from user
 
 def get_input():
-    data = get_selected_location_data(raw_input('Enter a Location: '))
-    distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))
-    angle = get_angle((data.geo_location['lat'], data.geo_location['lng']))
-    output = str(data.name) + ':' + str(distance) + ':' + str(angle)
-    print output
-    ser.write(output)
- #   get_input()
-
-get_input()
-# Output to Arduino
-while True: # for testing purposes
-	print ser.readline() # receive feedback from Arduino
+    loc_interrupt = False   # Boolean to interrupt listen cycle
+    data = get_selected_location_data(raw_input('Enter a Location: '))  # Get user input (must switch for audio)
+    distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))   # Calculate distance
+    angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - SIGN_DATA[0]  # Get difference between desired heading and current heading
+    led_print(data.name, distance)  # Display location name and relative distance
+    ser.write(str(angle))   # Send heading difference to Arduino
+    while loc_interrupt == False:   # Wait for Arduino to send new request
+        input = ser.readline()     # Record data over serial
+        if (input == 'interrupt'):  # Check for interrupt
+            loc_interrupt = True
+            get_input()     # Repeat process for a new location
