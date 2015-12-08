@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# before reboot
 # install dependencies
     sudo pip install python-google-places
     sudo apt-get install python-pyaudio python3-pyaudio
