@@ -26,6 +26,7 @@ time.sleep(2) # Wait for the Arduino to be ready
 # Automatically geolocate the connecting IP
 # Also, get heading data from the Arduino's magnetometer
 def get_sign_data():
+    heading = ""
     lines_received = 0
     ser.write('need_heading')
     while len(heading) == 0:
@@ -35,12 +36,12 @@ def get_sign_data():
     try:
         with closing(urlopen(url)) as response:
             location = json.loads(response.read())  # Get RasPi location data
-            print location
             latitude = location['latitude']
             longitude = location['longitude']
             coordinates = (latitude, longitude) # both values are floats
     except:
         coordinates = default_coordinates
+    print heading
     return [heading, coordinates]
 
 SIGN_DATA = get_sign_data()
@@ -49,7 +50,7 @@ gear_ratio = 3 # We need to update this
 # Voices
 # obtain audio from the microphone
 # r = sr.Recognizer()
-# with sr.Microphone() as source:
+# with sr.Microphone(sample_rate = 48000, chunk_size = 8192) as source:
 #     r.adjust_for_ambient_noise(source) # listen for 1 second to calibrate the energy threshold for ambient noise levels
 #     print("Say something!")
 #     audio = r.listen(source)
@@ -111,7 +112,7 @@ def get_input():
     loc_interrupt = False   # Boolean to interrupt listen cycle
     data = get_selected_location_data(raw_input('Enter a Location: '))  # Get user input (must switch for audio)
     distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))   # Calculate distance
-    angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - SIGN_DATA[0]  # Get difference between desired heading and current heading
+    angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - float(SIGN_DATA[0])  # Get difference between desired heading and current heading
     led_print(data.name, distance)  # Display location name and relative distance
     ser.write(str(angle))   # Send heading difference to Arduino
     while loc_interrupt == False:   # Wait for Arduino to send new request
@@ -119,3 +120,5 @@ def get_input():
         if (input == 'interrupt'):  # Check for interrupt
             loc_interrupt = True
             get_input()     # Repeat process for a new location
+
+get_input()
