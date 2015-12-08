@@ -42,7 +42,7 @@ void loop()
     if (buffer == "need_heading"){
         float heading = getHeading();
         Serial.println(heading);
-        buffer = '';
+        buffer = "";
     }else{
         angle = buffer.toFloat(); //getSubString(buffer, ':', 2);
         
