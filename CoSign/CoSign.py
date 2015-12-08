@@ -44,8 +44,11 @@ def get_sign_data():
     print heading
     return [heading, coordinates]
 
+
+led_print('Welcome', 'to CoSign')
 SIGN_DATA = get_sign_data()
 gear_ratio = 3 # We need to update this
+led_print('Where do you', 'want to go?')
 
 # Voices
 # obtain audio from the microphone

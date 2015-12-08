@@ -14,6 +14,9 @@ const int stepsPerRevolution = 200; // change this to match the stepper motor we
 boolean newBuffer = false; // did new info come from Python?
 String buffer;  // string built from serial
 float angle;
+byte pressed = 0;
+byte buttonPin = 2;
+boolean standby = true;
 
 // create stepper object to control a motor
 Stepper motor(stepsPerRevolution, 8, 9, 10, 11);
@@ -30,6 +33,12 @@ void setup()
  
 void loop() 
 { 
+  if (standby == true){
+    pressed = digitalRead(buttonPin);
+    if (pressed == 1){
+      Serial.println("interrupt");
+    }
+  }
   // while Python is sending over Serial, append characters to buffer
   while (Serial.available()>0) {
     char ch = Serial.read();
@@ -45,7 +54,8 @@ void loop()
         buffer = "";
     }else{
         angle = buffer.toFloat(); //getSubString(buffer, ':', 2);
-        
+        standby = True;
+
         //char carray2[angle.length() + 1];
         //angle.toCharArray(carray2, sizeof(carray));
         //float angleVal = atof(carray2);
