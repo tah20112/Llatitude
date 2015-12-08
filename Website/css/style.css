@@ -331,9 +331,9 @@ hr {
 }
 
 .intro .slogan h2 {
-	color: #FFF;
+	color: #20b2aa;
 	text-shadow: none;
-	font-size: 60px;
+	font-size: 120px;
 	line-height: 60px;
 	font-weight: 700;
 	font-family: Montserrat, sans-serif;
@@ -347,8 +347,9 @@ hr {
 }
 
 .intro .slogan h4 {
-	color: #fff;
-	text-shadow: -1px 1px 1px #000;
+	color: #b0f;
+    font-size: 24px;
+	text-shadow: none;
 }
 
 
