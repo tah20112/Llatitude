@@ -20,14 +20,13 @@ def led_print(first_line, second_line):
     pass
 
 # Begin serial connection with Arduino
-ser = serial.Serial('/dev/ttyACM1', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
+ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
 time.sleep(2) # Wait for the Arduino to be ready
 
 # Automatically geolocate the connecting IP
 # Also, get heading data from the Arduino's magnetometer
 def get_sign_data():
     heading = ""
-    lines_received = 0
     ser.write('need_heading')
     while len(heading) == 0:
         heading = ser.readline()
@@ -41,7 +40,7 @@ def get_sign_data():
             coordinates = (latitude, longitude) # both values are floats
     except:
         coordinates = default_coordinates
-    print heading
+    print 'heading:',heading
     return [heading, coordinates]
 
 
@@ -72,13 +71,18 @@ led_print('Where do you', 'want to go?')
 google_places = GooglePlaces('AIzaSyDNc2X0VlrZPMecga6HDs9RGR_FTJ-26lo')
 
 
-def get_selected_location_data(locationInput):
+def get_selected_location_data(locationInput, counter):
+    if counter > 3:
+        print 'max counter reached'
+        return []
     query_result = google_places.text_search(query=locationInput, radius = 1)
 
-#    if query_result.has_attributions:
-#        print query_result.html_attributions
+    print 'places:',query_result.places
 
-    place = query_result.places[0]
+    try:
+        place = query_result.places[0]
+    except IndexError:
+        place = get_selected_location_data(locationInput,counter+1)
 
     return place
 
@@ -113,15 +117,22 @@ def get_angle(location_coord):
 
 def get_input():
     loc_interrupt = False   # Boolean to interrupt listen cycle
-    data = get_selected_location_data(raw_input('Enter a Location: '))  # Get user input (must switch for audio)
-    distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))   # Calculate distance
-    angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - float(SIGN_DATA[0])  # Get difference between desired heading and current heading
-    led_print(data.name, distance)  # Display location name and relative distance
-    ser.write(str(angle))   # Send heading difference to Arduino
+    data = get_selected_location_data(raw_input('Enter a Location: '),0)  # Get user input (must switch for audio)
+    if data:
+        distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))   # Calculate distance
+        print 'got distance:',distance
+        angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - float(SIGN_DATA[0])  # Get difference between desired heading and current heading
+        print 'got angle:',angle
+        led_print(data.name, distance)  # Display location name and relative distance
+        print 'printed to LED'
+        ser.write(str(angle))   # Send heading difference to Arduino
+        print 'angle sent to arduino'
     while loc_interrupt == False:   # Wait for Arduino to send new request
         input = ser.readline()     # Record data over serial
-        if (input == 'interrupt'):  # Check for interrupt
+        print 'input:',input
+        if ('interrupt' in input):  # Check for interrupt
             loc_interrupt = True
-            get_input()     # Repeat process for a new location
+            print 'interrupted'
+	    get_input()     # Repeat process for a new location
 
 get_input()
