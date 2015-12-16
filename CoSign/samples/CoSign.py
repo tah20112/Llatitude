@@ -22,9 +22,9 @@ GEAR_RATIO = 3 # We need to update this
 
 #################### Helper Functions ######################
 
-def led_print(firstLine, secondLine):
+def led_print(firstLine, secondLine, stop):
     """Print data to LED Matrix, only call using threading"""
-    parser = RunText(firstLine, secondLine)
+    parser = RunText(firstLine, secondLine, stop)
     if (not parser.process()):
         parser.print_help()
 
@@ -65,7 +65,8 @@ def get_selected_location_data(locationInput):
         return get_selected_location_data('Boston')
 
 #################### STARTUP THREAD ######################
-def display_loading():
+def display_loading(stop):
+
     led_print('CoSign Loading...', '0')
 
 def setup():
@@ -160,7 +161,18 @@ def display_place():
 #################### MAIN PROGRAM ######################
 
 def MAIN():
-    threading.Thread(target=display_loading).start()
-    threading.Thread(target=setup).start()
+    displayStop = threading.Event()
+    displayThread = threading.Thread(target=display_loading, args=displayStop)
+    displayThread.daemon = True
+    displayThread.start()
+    
+    processThread = threading.Thread(target=setup)
+    processThread.daemon = True
+    processThread.start()
+
+    # Wait for the process to finish
+    processThread.join()
+    # Stop the display thread
+    displayStop.set()
 
 MAIN()
