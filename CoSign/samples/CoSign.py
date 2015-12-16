@@ -66,7 +66,7 @@ def get_selected_location_data(locationInput):
 
 #################### STARTUP THREAD ######################
 def display_loading(stop):
-    led_print('CoSign Loading...', '0', stop)
+    led_print('CoSign', '0', stop)
 
 def setup():
     """Setup the arduino and our current location & direction"""
@@ -104,12 +104,13 @@ def setup():
 
 #################### WAITING FOR BUTTON THREAD ######################
 
-def display_waiting():
-    led_print('Press the Button', '0')
+def display_waiting(stop):
+    led_print('Press the Button', '0', stop)
 
 def wait_for_arduino_button():
     """Stays in this loop until the button is pressed"""
     # while buttonPressed == False:
+    print 'waiting for button....'
     while True:
         # Wait for Arduino to tell us the button was pressed
         if ('interrupt' in arduino.readline()):
@@ -121,8 +122,8 @@ def wait_for_arduino_button():
 
 #################### LISTENING & CALCULATING THREAD ######################
 
-def display_listening():
-    led_print('Listening...','0')
+def display_listening(stop):
+    led_print('Listening...','0', stop)
 
 def get_input_and_calculate():
     global NAME
@@ -146,8 +147,8 @@ def get_input_and_calculate():
 
 #################### OUTPUT THREAD ######################
 
-def display_place():
-    led_print(NAME, DISTANCE)
+def display_place(stop):
+    led_print(NAME, DISTANCE, stop)
     print 'printed name & distance to LED'
 
 def send_angle_to_arduino():
@@ -160,6 +161,7 @@ def send_angle_to_arduino():
 
 def MAIN():
     thread_functions(display_loading, setup)
+    print 'SETUP THREAD DONE'
     thread_functions(display_waiting, wait_for_arduino_button)
     while True:
         thread_functions(display_listening, get_input_and_calculate)
@@ -180,5 +182,6 @@ def thread_functions(display_func, process_func):
     processThread.join()
     # Stop the display thread
     displayStop.set()
+    time.sleep(2)
 
 MAIN()
