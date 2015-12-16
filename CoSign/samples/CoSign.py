@@ -182,6 +182,7 @@ def thread_functions(display_func, process_func):
     processThread.join()
     # Stop the display thread
     displayStop.set()
-    time.sleep(2)
+    # Give it some time to shut down
+    time.sleep(.5)
 
 MAIN()
