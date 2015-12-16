@@ -66,7 +66,6 @@ def get_selected_location_data(locationInput):
 
 #################### STARTUP THREAD ######################
 def display_loading(stop):
-
     led_print('CoSign Loading...', '0', stop)
 
 def setup():
@@ -147,26 +146,33 @@ def get_input_and_calculate():
 
 #################### OUTPUT THREAD ######################
 
-def send_angle_to_arduino():
-    arduino.write(str(ANGLE))   # Send heading difference to Arduino
-    print 'angle sent to arduino'
-
-    # threading.Thread(target=wait_for_arduino_button).start()
-    # threading.Thread(target=led_print, args = (data.name, distance)).start()
-
 def display_place():
     led_print(NAME, DISTANCE)
     print 'printed name & distance to LED'
 
+def send_angle_to_arduino():
+    arduino.write(str(ANGLE))   # Send heading difference to Arduino
+    print 'angle sent to arduino'
+
+    #TODO wait until motor finishes pointing?
+
 #################### MAIN PROGRAM ######################
 
 def MAIN():
+    thread_functions(display_loading, setup)
+    thread_functions(display_waiting, wait_for_arduino_button)
+    while True:
+        thread_functions(display_listening, get_input_and_calculate)
+        thread_functions(display_place, send_angle_to_arduino)
+        thread_functions(display_place, wait_for_arduino_button)
+
+def thread_functions(display_func, process_func):
     displayStop = threading.Event()
-    displayThread = threading.Thread(target=display_loading, args=(displayStop,))
+    displayThread = threading.Thread(target=display_func, args=(displayStop,))
     displayThread.daemon = True
     displayThread.start()
     
-    processThread = threading.Thread(target=setup)
+    processThread = threading.Thread(target=process_func)
     processThread.daemon = True
     processThread.start()
 
@@ -174,7 +180,5 @@ def MAIN():
     processThread.join()
     # Stop the display thread
     displayStop.set()
-    print 'display should be stopped'
-    time.sleep(2)
 
 MAIN()
