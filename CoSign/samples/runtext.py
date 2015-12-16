@@ -29,6 +29,7 @@ class RunText(SampleBase):
             # Place name can't fit on the screen, so scroll it
             pos = offscreenCanvas.width
             # Keep running until we get a stop signal
+            print 'scrolling text...'
             while (not self.stop.is_set()):
                 offscreenCanvas.Clear()
                 len1 = graphics.DrawText(offscreenCanvas, placeFont, pos, 7, placeColor, self.place)
@@ -43,10 +44,13 @@ class RunText(SampleBase):
                 offscreenCanvas = self.matrix.SwapOnVSync(offscreenCanvas)
         else:
             placeStartPos = 1
-            offscreenCanvas.Clear()
-            len1 = graphics.DrawText(offscreenCanvas, placeFont, placeStartPos, 7, placeColor, self.place)
-            len2 = graphics.DrawText(offscreenCanvas, distFont, distStartPos, 16, distColor, self.distance)
-            offscreenCanvas = self.matrix.SwapOnVSync(offscreenCanvas)
+            print 'displaying static text...'
+            while (not self.stop.is_set()):
+                offscreenCanvas.Clear()
+                len1 = graphics.DrawText(offscreenCanvas, placeFont, placeStartPos, 7, placeColor, self.place)
+                len2 = graphics.DrawText(offscreenCanvas, distFont, distStartPos, 16, distColor, self.distance)
+                time.sleep(0.05)
+                offscreenCanvas = self.matrix.SwapOnVSync(offscreenCanvas)
 
 
 # Main function
