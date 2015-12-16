@@ -4,96 +4,39 @@
 # The first line indicates the program that can execute this script
 # The second line encodes utf-8 values and makes them function as strings?
 
-import serial, time
+import serial, time, pprint, math, json, threading
 import speech_recognition as sr
 from googleplaces import GooglePlaces, types, lang
-import pprint
-import math
 from geopy.distance import vincenty
 from urllib2 import urlopen
 from contextlib import closing
-import json
+from runtext import RunText
 
 
-# Print data to LED Matrix
-def led_print(first_line, second_line):
-    pass
 
-# Begin serial connection with Arduino
-ser = serial.Serial('/dev/ttyACM0', 9600) # /dev/ttyACM0 value is in the bottom right of Arduino window
-time.sleep(2) # Wait for the Arduino to be ready
-
-# Automatically geolocate the connecting IP
-# Also, get heading data from the Arduino's magnetometer
-def get_sign_data():
-    heading = ""
-    ser.write('need_heading')
-    while len(heading) == 0:
-        heading = ser.readline()
-    default_coordinates = (42.293045,-71.264086)    # POE Room coordinates
-    url = 'http://freegeoip.net/json/'  # set the geoip site for querying
-    try:
-        with closing(urlopen(url)) as response:
-            location = json.loads(response.read())  # Get RasPi location data
-            latitude = location['latitude']
-            longitude = location['longitude']
-            coordinates = (latitude, longitude) # both values are floats
-    except:
-        coordinates = default_coordinates
-    print 'heading:',heading
-    return [heading, coordinates]
-
-
-led_print('Welcome', 'to CoSign')
-SIGN_DATA = get_sign_data()
-gear_ratio = 3 # We need to update this
-led_print('Where do you', 'want to go?')
-
-# Voices
-# obtain audio from the microphone
-# r = sr.Recognizer()
-# with sr.Microphone(sample_rate = 48000, chunk_size = 8192) as source:
-#     r.adjust_for_ambient_noise(source) # listen for 1 second to calibrate the energy threshold for ambient noise levels
-#     print("Say something!")
-#     audio = r.listen(source)
-
-# recognize speech using Google Speech Recognition
-# try:
-#     # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
-#     # instead of `r.recognize_google(audio)`
-#     speech = r.recognize_google(audio) # returns voice recording as unicode characters (use str(speech) to convert to string)
-# except sr.UnknownValueError:
-#     print("Google Speech Recognition could not understand audio")
-# except sr.RequestError as e:
-#     print("Could not request results from Google Speech Recognition service; {0}".format(e))
-
+#################### Global Variables ######################
 # google_places = GooglePlaces('AIzaSyB8Yg8zsqZfUwinu2c_V8PP7mgBNrp0h8A')
 google_places = GooglePlaces('AIzaSyDNc2X0VlrZPMecga6HDs9RGR_FTJ-26lo')
+SIGN_DATA = []
+GEAR_RATIO = 3 # We need to update this
 
+#################### Helper Functions ######################
 
-def get_selected_location_data(locationInput, counter):
-    if counter > 3:
-        print 'max counter reached'
-        return []
-    query_result = google_places.text_search(query=locationInput, radius = 1)
-
-    print 'places:',query_result.places
-
-    try:
-        place = query_result.places[0]
-    except IndexError:
-        place = get_selected_location_data(locationInput,counter+1)
-
-    return place
+def led_print(firstLine, secondLine):
+    """Print data to LED Matrix, only call using threading"""
+    parser = RunText(firstLine, secondLine)
+    if (not parser.process()):
+        parser.print_help()
 
 def get_distance(location_coord):
     dist = vincenty(SIGN_DATA[1],location_coord).miles
     return dist
 
-# Get initial bearing toward location using Haversine's method
-# Taken from Jeromer's GitHub: https://gist.github.com/jeromer/2005586
 def get_angle(location_coord):
-
+    """
+    Get initial bearing toward location using Haversine's method
+    Taken from Jeromer's GitHub: https://gist.github.com/jeromer/2005586
+    """
     lat1 = math.radians(SIGN_DATA[1][0])
     lat2 = math.radians(location_coord[0])
 
@@ -109,30 +52,113 @@ def get_angle(location_coord):
     # from -180° to + 180° which is not what we want for a compass bearing
     # The solution is to normalize the initial bearing as shown below
     initial_bearing = math.degrees(initial_bearing)
-    compass_bearing = ((initial_bearing + 360) % 360)*gear_ratio
+    compass_bearing = ((initial_bearing + 360) % 360) * GEAR_RATIO
 
     return compass_bearing
 
-# Get place input from user
+def get_selected_location_data(locationInput):
+    query_result = google_places.text_search(query=locationInput, radius = 1)
+    print 'places:',query_result.places
+    try:
+        return query_result.places[0]
+    except IndexError:
+        return get_selected_location_data('Boston')
 
-def get_input():
-    loc_interrupt = False   # Boolean to interrupt listen cycle
-    data = get_selected_location_data(raw_input('Enter a Location: '),0)  # Get user input (must switch for audio)
-    if data:
-        distance = get_distance((data.geo_location['lat'], data.geo_location['lng']))   # Calculate distance
-        print 'got distance:',distance
-        angle = get_angle((data.geo_location['lat'], data.geo_location['lng'])) - float(SIGN_DATA[0])  # Get difference between desired heading and current heading
-        print 'got angle:',angle
-        led_print(data.name, distance)  # Display location name and relative distance
-        print 'printed to LED'
-        ser.write(str(angle))   # Send heading difference to Arduino
-        print 'angle sent to arduino'
-    while loc_interrupt == False:   # Wait for Arduino to send new request
-        input = ser.readline()     # Record data over serial
-        print 'input:',input
-        if ('interrupt' in input):  # Check for interrupt
-            loc_interrupt = True
-            print 'interrupted'
-	    get_input()     # Repeat process for a new location
+#################### STARTUP THREAD ######################
+def display_loading():
+    led_print('CoSign Loading...', '0')
 
-get_input()
+def setup():
+    """Setup the arduino and our current location & direction"""
+    global SIGN_DATA
+    global arduino
+
+    # Begin serial connection with Arduino, wait for it to be ready
+    arduino = serial.Serial('/dev/ttyACM0', 9600)
+    time.sleep(2)
+
+    # Get heading data from the Arduino's magnetometer
+    heading = ""
+    arduino.write('need_heading')
+    while len(heading) == 0:
+        heading = ser.readline()
+    print 'got heading:',heading
+
+    # Find our location using geoIP
+    try:
+        # Query the geoip site
+        with closing(urlopen('http://freegeoip.net/json/')) as response:
+            location = json.loads(response.read())
+            latitude = location['latitude']
+            longitude = location['longitude']
+            # Both values are floats
+            coordinates = (latitude, longitude)
+    except:
+        # Can't find our location, so default to the POE room
+        coordinates = (42.293045,-71.264086)
+    print 'got coordinates:',coordinates
+
+    SIGN_DATA = [heading, coordinates]
+
+#################### WAITING FOR BUTTON THREAD ######################
+
+def display_waiting():
+    led_print('Press the Button', '0')
+
+def wait_for_arduino_button():
+    """Stays in this loop until the button is pressed"""
+    # while buttonPressed == False:
+    while True:
+        # Wait for Arduino to tell us the button was pressed
+        if ('interrupt' in arduino.readline()):
+            # Button was pressed
+            # buttonPressed = True
+            print 'button pressed'
+            return
+            # get_input() # Repeat process for a new location
+
+#################### LISTENING & CALCULATING THREAD ######################
+
+def display_listening():
+    led_print('Listening...','0')
+
+def get_input_and_calculate():
+    global NAME
+    global DISTANCE
+    global ANGLE
+
+    #TODO change this for microphone:
+    NAME = raw_input('Enter a Location: ')
+
+    data = get_selected_location_data(NAME)
+    lat = data.geo_location['lat']
+    lng = data.geo_location['lng']
+
+    # Calculate distance
+    DISTANCE = get_distance((lat, lng))
+    print 'got distance:',DISTANCE
+
+    # Get difference between desired heading and current heading
+    ANGLE = get_angle((lat, lng)) - float(SIGN_DATA[0])
+    print 'got angle:',ANGLE
+
+#################### OUTPUT THREAD ######################
+
+def send_angle_to_arduino():
+    arduino.write(str(ANGLE))   # Send heading difference to Arduino
+    print 'angle sent to arduino'
+
+    # threading.Thread(target=wait_for_arduino_button).start()
+    # threading.Thread(target=led_print, args = (data.name, distance)).start()
+
+def display_place():
+    led_print(NAME, DISTANCE)
+    print 'printed name & distance to LED'
+
+#################### MAIN PROGRAM ######################
+
+def MAIN():
+    threading.Thread(target=display_waiting).start()
+    threading.Thread(target=setup).start()
+
+MAIN()
