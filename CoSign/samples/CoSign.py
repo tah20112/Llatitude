@@ -67,7 +67,7 @@ def get_selected_location_data(locationInput):
 #################### STARTUP THREAD ######################
 def display_loading(stop):
 
-    led_print('CoSign Loading...', '0')
+    led_print('CoSign Loading...', '0', stop)
 
 def setup():
     """Setup the arduino and our current location & direction"""
@@ -162,7 +162,7 @@ def display_place():
 
 def MAIN():
     displayStop = threading.Event()
-    displayThread = threading.Thread(target=display_loading, args=displayStop)
+    displayThread = threading.Thread(target=display_loading, args=(displayStop,))
     displayThread.daemon = True
     displayThread.start()
     
@@ -174,5 +174,7 @@ def MAIN():
     processThread.join()
     # Stop the display thread
     displayStop.set()
+    print 'display should be stopped'
+    time.sleep(2)
 
 MAIN()
