@@ -76,10 +76,12 @@ def setup():
     # Begin serial connection with Arduino, wait for it to be ready
     arduino = serial.Serial('/dev/ttyACM0', 9600)
     time.sleep(2)
+    print 'connected to arduino'
 
     # Get heading data from the Arduino's magnetometer
     heading = ""
     arduino.write('need_heading')
+    print 'trying to get heading from arduino...'
     while len(heading) == 0:
         heading = arduino.readline()
     print 'got heading:',heading
@@ -158,7 +160,7 @@ def display_place():
 #################### MAIN PROGRAM ######################
 
 def MAIN():
-    threading.Thread(target=display_waiting).start()
+    threading.Thread(target=display_loading).start()
     threading.Thread(target=setup).start()
 
 MAIN()
