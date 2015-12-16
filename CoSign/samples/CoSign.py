@@ -81,7 +81,7 @@ def setup():
     heading = ""
     arduino.write('need_heading')
     while len(heading) == 0:
-        heading = ser.readline()
+        heading = arduino.readline()
     print 'got heading:',heading
 
     # Find our location using geoIP
