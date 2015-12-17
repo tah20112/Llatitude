@@ -30,7 +30,7 @@ def led_print(firstLine, secondLine, stop):
 
 def get_distance(location_coord):
     dist = vincenty(SIGN_DATA[1],location_coord).miles
-    return dist
+    return str(dist)
 
 def get_angle(location_coord):
     """
@@ -66,7 +66,7 @@ def get_selected_location_data(locationInput):
 
 #################### STARTUP THREAD ######################
 def display_loading(stop):
-    led_print('CoSign', '0', stop)
+    led_print('Loading...', '0', stop)
 
 def setup():
     """Setup the arduino and our current location & direction"""
@@ -74,7 +74,7 @@ def setup():
     global arduino
 
     # Begin serial connection with Arduino, wait for it to be ready
-    arduino = serial.Serial('/dev/ttyACM0', 9600)
+    arduino = serial.Serial('/dev/ttyACM1', 9600)
     time.sleep(2)
     print 'connected to arduino'
 
