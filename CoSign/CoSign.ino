@@ -36,6 +36,7 @@ void loop()
   if (standby == true){
     pressed = digitalRead(buttonPin);
     if (pressed == 1){
+      standby = false;
       Serial.println("interrupt");
     }
   }
@@ -54,7 +55,7 @@ void loop()
         buffer = "";
     }else{
         angle = buffer.toFloat(); //getSubString(buffer, ':', 2);
-        standby = True;
+        standby = true;
 
         //char carray2[angle.length() + 1];
         //angle.toCharArray(carray2, sizeof(carray));
