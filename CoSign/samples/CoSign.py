@@ -76,7 +76,7 @@ def setup():
     # Begin serial connection with Arduino, wait for it to be ready
     try:
         arduino = serial.Serial('/dev/ttyACM1', 9600)
-    except SerialException:
+    except:
         arduino = serial.Serial('/dev/ttyACM0', 9600)
     time.sleep(2)
     print 'connected to arduino'
