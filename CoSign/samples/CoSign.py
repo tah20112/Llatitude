@@ -30,7 +30,7 @@ def led_print(firstLine, secondLine, stop):
 
 def get_distance(location_coord):
     dist = vincenty(SIGN_DATA[1],location_coord).miles
-    return str(dist)
+    return str(dist)[:8]
 
 def get_angle(location_coord):
     """
