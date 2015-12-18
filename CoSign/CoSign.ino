@@ -1,11 +1,7 @@
-// NOTE: must add limit switch to zero stepper motor @ startup
-
 /* Inputs direction data from Raspberry Pi and writes to a stepper motor, turning it toward the location
 Outputs magnetometer heading data to RasPi
 */
 
-//#include <AFMotor.h>
-//#include <Stepper.h> // include step motor library
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
@@ -17,6 +13,7 @@ boolean newBuffer = false; // did new info come from Python?
 String buffer;  // string built from serial
 float angle;
 byte pressed = 0;
+byte switched = 0;
 byte buttonPin = 2;
 boolean standby = true;
 byte switchPin = 6;
@@ -24,16 +21,13 @@ byte switchPin = 6;
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(200,1);
 
-// create stepper object to control a motor
-//Stepper motor(stepsPerRevolution, 8, 9, 10, 11);
-
 // Assign a unique ID to the magnetometer
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 
 void setup()
 { 
   Serial.begin(9600);
-  //motor.setSpeed(30); // speed set in rpm
+  myMotor->setSpeed(15); // speed set in rpm
   mag.begin();
 } 
  
@@ -63,14 +57,14 @@ void loop()
         standby = true;
         
         int angle = buffer.toInt();
-        while(pressed != true){
-            pressed = digitalRead(switchPin);
+        while(switched != true){
+            switched = digitalRead(switchPin);
             myMotor->step(1, BACKWARD, SINGLE);
         }
         myMotor->step(angle, FORWARD, SINGLE);
         newBuffer = false;
         buffer = "";
-        pressed = digitalRead(switchPin);
+        switched = digitalRead(switchPin);
     }
   }
 }
